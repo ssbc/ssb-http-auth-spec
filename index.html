@@ -1,0 +1,221 @@
+<html>
+<head>
+<style>
+html {
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 80px 0;
+  line-height: 1.5em;
+}
+h2 {
+  margin-top: 70px;
+}
+h3 {
+  margin-top: 50px;
+}
+table {
+  border-collapse: collapse;
+}
+td, th {
+  padding: 0.5rem;
+  border: 1px #aaa solid;
+}
+a[href^="http"]::after {
+  content: "⧉";
+}
+a[href^="#"] {
+  text-decoration: none;
+  border-bottom: 1px blue dotted;
+}
+pre {
+  white-space: break-spaces;
+}
+pre, code {
+  background-color: #e8e8e8;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+</style>
+</head>
+<script crossorigin src="https://unpkg.com/mermaid@8.9.1/dist/mermaid.min.js"></script>
+<body>
+
+<h1 id="ssb-http-authentication">SSB HTTP Authentication</h1>
+<p><strong>Revision:</strong> <code>2021-03-25</code></p>
+<p><strong>Author:</strong> Andre Medeiros <a href="mailto:contact@staltz.com">contact@staltz.com</a></p>
+<p><strong>License:</strong> This work is licensed under a <a href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>
+<h2 id="abstract">Abstract</h2>
+<p>SSB is a peer-to-peer system where there should not be a client-server distinction, but there are exceptions to this nature. "Pub servers" and "room servers" are nodes with privileged internet-wide presence that can provide replication and tunneled-connection services to several peers. Since these servers often also host a public HTTP interface, concern has been raised on how authenticated clients are to interact with these services over HTTP when requesting access-restricted resources. SSB HTTP Authentication is a protocol that utilizes both SSB muxrpc and HTTPS to grant an HTTP client (such as a browser) access to resources authorized for the SSB client peer.</p>
+<h2 id="terminology">Terminology</h2>
+<p>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in <a href="https://tools.ietf.org/html/rfc2119">RFC 2119</a>.</p>
+<h2 id="table-of-contents">Table of contents</h2>
+<ul>
+<li><a href="#conditions">Conditions</a></li>
+<li><a href="#specification">Specification</a>
+<ul>
+<li><a href="#client-initiated-protocol">Client-initiated protocol</a></li>
+<li><a href="#server-initiated-protocol">Server-initiated protocol</a></li>
+<li><a href="#sign-out">Sign-out</a></li>
+</ul>
+</li>
+<li><a href="#security-considerations">Security considerations</a>
+<ul>
+<li><a href="#client-consent">Client consent</a></li>
+<li><a href="#client-impersonation">Client impersonation</a></li>
+<li><a href="#tokens">Tokens</a></li>
+</ul>
+</li>
+<li><a href="#appendix">Appendix</a>
+<ul>
+<li><a href="#list-of-http-endpoints">List of HTTP endpoints</a></li>
+<li><a href="#list-of-new-muxrpc-apis">List of new muxrpc APIs</a></li>
+<li><a href="#list-of-new-ssb-uris">List of new SSB URIs</a></li>
+</ul>
+</li>
+</ul>
+<h2 id="conditions">Conditions</h2>
+<p>This specification makes clear assumptions about the setup involved peers authenticating.</p>
+<p><strong>Server:</strong> an SSB peer, known as the "server", <strong>MUST</strong> have an internet-public host address, <strong>MUST</strong> be accessible for secret-handshake connections under a multiserver address, and <strong>MUST</strong> support HTTP requests.</p>
+<p><strong>Client:</strong> another SSB peer, known as the "client", <strong>MUST</strong> be able to open a secret-handshake and muxrpc connection with the server. The user controlling this SSB peer also <strong>SHOULD</strong> control a web browser used to make requests to the server. The client's browser and operating system <strong>SHOULD</strong> support hyperlinks to <a href="https://github.com/ssb-ngi-pointer/ssb-uri-spec">SSB URIs</a>, redirecting them to SSB applications that recognize and parse SSB URIs. The client's SSB application employed during SSB HTTP Authentication <strong>MUST</strong> be able to recognize and parse SSB URIs.</p>
+<p><strong>Connections:</strong> the server and the client <strong>SHOULD</strong> recognize each other's SSB IDs as mutually trusted (such as a mutual follow relationship, or "membership" relationship where the client has claimed an invite token from the server). For the authentication protocol described in this document to succeed, the two SSB peers <strong>MUST</strong> be connected to each other via muxrpc and secret-handshake for the entire duration of the protocol. The purpose of SSB HTTP Authentication is to extend the trust that exists between these peers from the muxrpc context to the context of HTTP in the browser.</p>
+<h2 id="specification">Specification</h2>
+<p>A client known by its SSB ID <code>cid</code> is connected via secret-handshake and muxrpc to a server known by its SSB ID <code>sid</code>. The server is hosted at <code>serverHost</code>. A browser controlled by the same person or agent as the <code>cid</code> peer wishes to request an access-restricted resource (such as an admin dashboard) at the server over HTTP. All HTTP requests <strong>MUST</strong> be done with HTTPS.</p>
+<p>The three sides (browser client, SSB client <code>cid</code>, and SSB server <code>sid</code>) perform a <a href="https://en.wikipedia.org/wiki/Challenge%E2%80%93response_authentication">challenge-response authentication</a> protocol, specified as UML sequence diagrams. We use the shorthands <code>sc</code>, <code>cc</code>, and <code>sol</code> to mean:</p>
+<ul>
+<li><code>sc</code>: "server's challenge"</li>
+<li><code>cc</code>: "client's challenge"</li>
+<li><code>sol</code>: "solution"</li>
+</ul>
+<p>The challenges, <code>cc</code> and <code>sc</code>, are 256-bit <a href="https://en.wikipedia.org/wiki/Cryptographic_nonce">cryptographic nonces</a> encoded in base64. The solution <code>sol</code> is a cryptographic signature using the cryptographic keypair <code>cid</code> that identifies the client, described below:</p>
+<ul>
+<li><code>sid</code> is the servers's identity from their cryptographic keypair</li>
+<li><code>cid</code> is the client's identity from their cryptographic keypair</li>
+<li><code>sc</code> is a 256-bit nonce created by the server, encoded in base64</li>
+<li><code>cc</code> is a 256-bit nonce created by the client, encoded in base64</li>
+<li><code>sol</code> is the client's cryptographic signature of the string <code>=http-auth-sign-in:${sid}:${cid}:${sc}:${cc}</code> where <code>${x}</code> means string interpolation of the value <code>x</code></li>
+</ul>
+<p>Both sides generate the nonces, but there are use cases where one side should start first. In other words, the challenge-response protocol described here can be either <strong>client-initiated</strong> or <strong>server-initiated</strong>.</p>
+<p>The HTTPS endpoints <code>/login</code>, <code>/sse/login/${sc}</code>, <code>/logout</code> <strong>MAY</strong> be employed as specified here, but are not strictly required for SSB HTTP Authentication to succeed. On the other hand, the muxrpc APIs <code>httpAuth.requestSolution(sc, cc)</code>, <code>httpAuth.sendSolution(sc, cc, cr)</code>, <code>httpAuth.invalidateAllSolutions()</code> and the SSB URI <code>ssb:experimental?action=start-http-auth&#x26;sid=${sid}&#x26;sc=${sc}</code> <strong>MUST</strong> be employed.</p>
+<h3 id="client-initiated-protocol">Client-initiated protocol</h3>
+<p>In the client-initiated variant of the challenge-response protocol, the first step is the client creating <code>cc</code> and opening a web page in the browser. Then, the server attending to that HTTP request will call <code>httpAuth.requestSolution(sc, cc)</code> on the client SSB peer.</p>
+<p>The UML sequence diagram for the whole client-initial protocol is shown below:</p>
+<div class="mermaid">
+  sequenceDiagram
+  participant Umux as SSB client `cid`
+  participant Uweb as Browser client
+  participant Serv as SSB server `sid`
+
+  note over Umux: Generates<br/>challenge `cc`
+  Umux->>Uweb: `https://${serverHost}/login<br/>?cid=${cid}&cc=${cc}`
+  Uweb->>+Serv: `https://${serverHost}/login<br/>?cid=${cid}&cc=${cc}`
+  Note over Serv: Generates<br/>challenge `sc`
+  alt client is disconnected from the server
+    Serv-->>Uweb: HTTP 403
+  else client is connected to the server
+    Serv->>+Umux: (muxrpc async) `httpAuth.requestSolution(sc, cc)`
+    Note over Umux: Generates<br/>signature `sol`
+    Umux-->>-Serv: respond httpAuth.requestSolution with `sol`
+    alt `sol` is incorrect
+      Serv-->>Uweb: HTTP 403
+    else `sol` is correct
+      Serv-->>-Uweb: HTTP 200, auth token
+      Note over Uweb: Stores auth token as a cookie
+    end
+  end
+</div>
+<h3 id="server-initiated-protocol">Server-initiated protocol</h3>
+<p>In the server-initiated variant of the challenge-response protocol, the first step is the browser requesting a login from the server using a certain <code>cid</code>. The server answers the browser, which in turn displays an SSB URI which the SSB peer knows how to open.</p>
+<p>The primary difference between this variant and the previous one is that the muxrpc async RPC is reversed. Previously, the server called <code>httpAuth.requestSolution</code> <strong>on the client</strong>. In this variant, client calls <code>httpAuth.sendSolution</code> <strong>on the server</strong>. The response is also different. In the previous case, the client's response is expected to be the <code>sol</code>. In this variant, the <code>sol</code> argument is provided by the client and the server's response is expected to be <code>true</code>.</p>
+<p>The secondary difference with this variant is the addition of <a href="https://html.spec.whatwg.org/multipage/server-sent-events.html">Server-Sent Events</a> between the browser and the server, to update the browser when the muxrpc protocol succeeds.</p>
+<p>The UML sequence diagram for the whole server-initial protocol is shown below:</p>
+<div class="mermaid">
+  sequenceDiagram
+  participant Umux as SSB client `cid`
+  participant Uweb as Browser client
+  participant Serv as SSB server `sid`
+
+  Uweb->>Serv: `https://${serverHost}/login?cid=${cid}`
+  activate Serv
+  Note over Serv: Generates<br/>challenge `sc`
+  Serv-->>Uweb: Displays `ssb:experimental?<br/>action=start-http-auth&sid=${sid}&sc=${sc}`
+  Uweb->>Serv: Subscribe to `/sse/login/${sc}`
+  Uweb->>Umux: Consumes SSB URI
+  Note over Umux: Generates<br/>challenge `cc`
+  Note over Umux: Generates<br/>signature `sol`
+  Umux->>+Serv: (muxrpc async) `httpAuth.sendSolution(sc, cc, sol)`
+  alt `sol` is incorrect, or other errors
+    Serv-->>Umux: `false`
+    Serv-->>Uweb: (SSE) "redirect to ${url}"
+    Uweb->>+Serv: GET `${url}`
+    Serv-->>-Uweb: HTTP 403
+  else `sol` is correct
+    Serv-->>-Umux: `true`
+    Serv-->>Uweb: (SSE) "redirect to ${url}"
+    Uweb->>+Serv: GET `${url}`
+    Serv-->>-Uweb: HTTP 200, auth token
+    deactivate Serv
+    Note over Uweb: Stores auth token as a cookie
+  end
+</div>
+<h3 id="sign-out">Sign-out</h3>
+<p>An optional (but recommended) muxrpc API <code>httpAuth.invalidateAllSolutions</code> on the server to allow the SSB peer to invalidate <em>all</em> auth tokens associated with the <code>cid</code>. See UML sequence diagram:</p>
+<div class="mermaid">
+  sequenceDiagram
+  participant Umux as SSB client `cid`
+  participant Uweb as Browser client
+  participant Serv as SSB server `sid`
+
+  Umux->>+Serv: (muxrpc async) `httpAuth.invalidateAllSolutions()`
+  Note over Serv: Invalidates every `sc`<br/>and `authtoken` associated<br/>with `cid`
+  Serv-->>-Umux: respond httpAuth.invalidateAllSolutions with `true`
+  Note over Uweb,Serv: Potentially thereafter...
+  Uweb->>+Serv: Authenticate using `authtoken`
+  Serv-->>-Uweb: HTTP 401
+</div>
+<p>The browser client also has the option of signing out with HTTP endpoints. This does not require a muxrpc call with the SSB peer. See UML sequence diagram:</p>
+<div class="mermaid">
+  sequenceDiagram
+  participant Uweb as Browser client
+  participant Serv as SSB server `sid`
+
+  Uweb->>+Serv: `/logout`
+  Note over Serv: Invalidates `authtoken`
+  Serv-->>-Uweb: HTTP 200
+  Note over Uweb,Serv: Potentially thereafter...
+  Uweb->>+Serv: Authenticate using `authtoken`
+  Serv-->>-Uweb: HTTP 401
+</div>
+<h2 id="security-considerations">Security considerations</h2>
+<h3 id="client-consent">Client consent</h3>
+<p>Because the sign-in process is seemless and happens in the background via muxrpc, without any input from the user who controls the client SSB peer, there is potential for vulnerabilities if the SSB URI is manipulated or the URL is manipulated.</p>
+<p>SSB applications that control the client SSB peer therefore MUST prompt user consent before <code>httpAuth.requestSolution</code> or <code>httpAuth.sendSolution</code> are sent. The prompt SHOULD display the server's SSB ID and ask the user to confirm their intent to sign-in.</p>
+<h3 id="client-impersonation">Client impersonation</h3>
+<p>To be done.</p>
+<h3 id="tokens">Tokens</h3>
+<p>To be done.</p>
+<h2 id="appendix">Appendix</h2>
+<h3 id="list-of-http-endpoints">List of HTTP endpoints</h3>
+<ul>
+<li><code>/login</code></li>
+<li><code>/sse/login/${sc}</code></li>
+<li><code>/logout</code></li>
+</ul>
+<h3 id="list-of-new-muxrpc-apis">List of new muxrpc APIs</h3>
+<ul>
+<li>async
+<ul>
+<li><code>httpAuth.requestSolution(sc, cc)</code></li>
+<li><code>httpAuth.sendSolution(sc, cc, cr)</code></li>
+<li><code>httpAuth.invalidateAllSolutions()</code></li>
+</ul>
+</li>
+</ul>
+<h3 id="list-of-new-ssb-uris">List of new SSB URIs</h3>
+<ul>
+<li><code>ssb:experimental?action=start-http-auth&#x26;sid=${sid}&#x26;sc=${sc}</code></li>
+</ul>
+
+
+</body>
+</html>
