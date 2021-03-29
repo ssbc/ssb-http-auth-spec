@@ -42,7 +42,7 @@ pre, code {
 <body>
 
 <h1 id="ssb-http-authentication">SSB HTTP Authentication</h1>
-<p><strong>Revision:</strong> <code>2021-03-25</code></p>
+<p><strong>Revision:</strong> <code>2021-03-29</code></p>
 <p><strong>Author:</strong> Andre Medeiros <a href="mailto:contact@staltz.com">contact@staltz.com</a></p>
 <p><strong>License:</strong> This work is licensed under a <a href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>
 <h2 id="abstract">Abstract</h2>
@@ -158,6 +158,9 @@ pre, code {
     Note over Uweb: Stores auth token as a cookie
   end
 </div>
+<p>The SSB URI <strong>MAY</strong> also contain the query parameter <code>multiserverAddress</code> with value <code>msaddr</code> matching the server's multiserver address, in case the client does not know how to map the server's <code>sid</code> to a multiserver address in order to call the muxrpc <code>http.sendSolution</code>:</p>
+<pre><code>ssb:experimental?&#x3C;br/>action=start-http-auth&#x26;sid=${sid}&#x26;sc=${sc}&#x26;multiserverAddress=${msaddr}
+</code></pre>
 <h3 id="sign-out">Sign-out</h3>
 <p>An optional (but recommended) muxrpc API <code>httpAuth.invalidateAllSolutions</code> on the server to allow the SSB peer to invalidate <em>all</em> auth tokens associated with the <code>cid</code>. See UML sequence diagram:</p>
 <div class="mermaid">
