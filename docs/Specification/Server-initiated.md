@@ -37,3 +37,9 @@ sequenceDiagram
     Note over Uweb: Stores auth token as a cookie
   end
 ```
+
+The SSB URI **MAY** also contain the query parameter `multiserverAddress` with value `msaddr` matching the server's multiserver address, in case the client does not know how to map the server's `sid` to a multiserver address in order to call the muxrpc `http.sendSolution`:
+
+```
+ssb:experimental?<br/>action=start-http-auth&sid=${sid}&sc=${sc}&multiserverAddress=${msaddr}
+```
