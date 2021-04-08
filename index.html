@@ -42,7 +42,7 @@ pre, code {
 <body>
 
 <h1 id="ssb-http-authentication">SSB HTTP Authentication</h1>
-<p><strong>Revision:</strong> <code>2021-03-29</code></p>
+<p><strong>Revision:</strong> <code>2021-04-08</code></p>
 <p><strong>Author:</strong> Andre Medeiros <a href="mailto:contact@staltz.com">contact@staltz.com</a></p>
 <p><strong>License:</strong> This work is licensed under a <a href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>
 <h2 id="abstract">Abstract</h2>
@@ -125,9 +125,9 @@ pre, code {
   end
 </div>
 <h3 id="server-initiated-protocol">Server-initiated protocol</h3>
-<p>In the server-initiated variant of the challenge-response protocol, the first step is the browser requesting a login from the server using a certain <code>cid</code>. The server answers the browser, which in turn displays an SSB URI which the SSB peer knows how to open.</p>
-<p>The primary difference between this variant and the previous one is that the muxrpc async RPC is reversed. Previously, the server called <code>httpAuth.requestSolution</code> <strong>on the client</strong>. In this variant, client calls <code>httpAuth.sendSolution</code> <strong>on the server</strong>. The response is also different. In the previous case, the client's response is expected to be the <code>sol</code>. In this variant, the <code>sol</code> argument is provided by the client and the server's response is expected to be <code>true</code>.</p>
-<p>The secondary difference with this variant is the addition of <a href="https://html.spec.whatwg.org/multipage/server-sent-events.html">Server-Sent Events</a> between the browser and the server, to update the browser when the muxrpc protocol succeeds.</p>
+<p>In the server-initiated variant of the challenge-response protocol, the first step is the browser requesting a login from the server without any input data. The server answers the browser, which in turn displays an SSB URI which the SSB peer knows how to open.</p>
+<p>The primary difference between this variant and the previous one is that the muxrpc async RPC call direction is reversed. Previously, the server called <code>httpAuth.requestSolution</code> <strong>on the client</strong>. In this variant, the client calls <code>httpAuth.sendSolution</code> <strong>on the server</strong>. The response is also different. In the previous case, the client's response is expected to be the <code>sol</code>. In this variant, the <code>sol</code> argument is provided by the client and the server's response is expected to be <code>true</code>.</p>
+<p>The secondary difference with this variant is the addition of <a href="https://html.spec.whatwg.org/multipage/server-sent-events.html">Server-Sent Events</a> (SSE) between the browser and the server, to update the browser when the muxrpc protocol succeeds.</p>
 <p>The UML sequence diagram for the whole server-initial protocol is shown below:</p>
 <div class="mermaid">
   sequenceDiagram
@@ -135,11 +135,11 @@ pre, code {
   participant Uweb as Browser client
   participant Serv as SSB server `sid`
 
-  Uweb->>Serv: `https://${serverHost}/login?cid=${cid}`
+  Uweb->>Serv: `https://${serverHost}/login`
   activate Serv
   Note over Serv: Generates<br/>challenge `sc`
   Serv-->>Uweb: Displays `ssb:experimental?<br/>action=start-http-auth&sid=${sid}&sc=${sc}`
-  Uweb->>Serv: Subscribe to `/sse/login/${sc}`
+  Uweb->>Serv: SSE subscribe to `/sse/login/${sc}`
   Uweb->>Umux: Consumes SSB URI
   Note over Umux: Generates<br/>challenge `cc`
   Note over Umux: Generates<br/>signature `sol`
