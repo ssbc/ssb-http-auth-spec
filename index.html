@@ -107,8 +107,8 @@ pre, code {
   participant Serv as SSB server `sid`
 
   note over Umux: Generates<br/>challenge `cc`
-  Umux->>Uweb: `https://${serverHost}/login<br/>?ssb-http-auth=1cid=${cid}&cc=${cc}`
-  Uweb->>+Serv: `https://${serverHost}/login<br/>?ssb-http-auth=1cid=${cid}&cc=${cc}`
+  Umux->>Uweb: `https://${serverHost}/login<br/>?ssb-http-auth=1&cid=${cid}&cc=${cc}`
+  Uweb->>+Serv: `https://${serverHost}/login<br/>?ssb-http-auth=1&cid=${cid}&cc=${cc}`
   Note over Serv: Generates<br/>challenge `sc`
   alt client is disconnected from the server
     Serv-->>Uweb: HTTP 403
