@@ -1,5 +1,3 @@
-## List of HTTP endpoints
+## List of required HTTP endpoints
 
 - `/login`
-- `/sse/login/${sc}`
-- `/logout`

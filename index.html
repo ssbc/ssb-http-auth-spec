@@ -42,7 +42,7 @@ pre, code {
 <body>
 
 <h1 id="ssb-http-authentication">SSB HTTP Authentication</h1>
-<p><strong>Revision:</strong> <code>2021-04-08</code></p>
+<p><strong>Revision:</strong> <code>2021-04-09</code></p>
 <p><strong>Author:</strong> Andre Medeiros <a href="mailto:contact@staltz.com">contact@staltz.com</a></p>
 <p><strong>License:</strong> This work is licensed under a <a href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>
 <h2 id="abstract">Abstract</h2>
@@ -68,7 +68,7 @@ pre, code {
 </li>
 <li><a href="#appendix">Appendix</a>
 <ul>
-<li><a href="#list-of-http-endpoints">List of HTTP endpoints</a></li>
+<li><a href="#list-of-required-http-endpoints">List of required HTTP endpoints</a></li>
 <li><a href="#list-of-new-muxrpc-apis">List of new muxrpc APIs</a></li>
 <li><a href="#list-of-new-ssb-uris">List of new SSB URIs</a></li>
 </ul>
@@ -96,7 +96,7 @@ pre, code {
 <li><code>sol</code> is the client's cryptographic signature of the string <code>=http-auth-sign-in:${sid}:${cid}:${sc}:${cc}</code> where <code>${x}</code> means string interpolation of the value <code>x</code></li>
 </ul>
 <p>Both sides generate the nonces, but there are use cases where one side should start first. In other words, the challenge-response protocol described here can be either <strong>client-initiated</strong> or <strong>server-initiated</strong>.</p>
-<p>The HTTPS endpoints <code>/login</code>, <code>/sse/login/${sc}</code>, <code>/logout</code> <strong>MAY</strong> be employed as specified here, but are not strictly required for SSB HTTP Authentication to succeed. On the other hand, the muxrpc APIs <code>httpAuth.requestSolution(sc, cc)</code>, <code>httpAuth.sendSolution(sc, cc, cr)</code>, <code>httpAuth.invalidateAllSolutions()</code> and the SSB URI <code>ssb:experimental?action=start-http-auth&#x26;sid=${sid}&#x26;sc=${sc}</code> <strong>MUST</strong> be employed.</p>
+<p>The HTTPS endpoint <code>/login</code> with the query parameter <code>ssb-http-auth</code> <strong>MUST</strong> be employed as specified here, but URLs for logging out and for Server-Sent Events (SSE) are left unspecified and implementations are free to choose their routes. The muxrpc APIs <code>httpAuth.requestSolution(sc, cc)</code>, <code>httpAuth.sendSolution(sc, cc, cr)</code>, <code>httpAuth.invalidateAllSolutions()</code> and the SSB URI <code>ssb:experimental?action=start-http-auth&#x26;sid=${sid}&#x26;sc=${sc}</code> <strong>MUST</strong> be employed as specified here.</p>
 <h3 id="client-initiated-protocol">Client-initiated protocol</h3>
 <p>In the client-initiated variant of the challenge-response protocol, the first step is the client creating <code>cc</code> and opening a web page in the browser. Then, the server attending to that HTTP request will call <code>httpAuth.requestSolution(sc, cc)</code> on the client SSB peer.</p>
 <p>The UML sequence diagram for the whole client-initial protocol is shown below:</p>
@@ -107,8 +107,8 @@ pre, code {
   participant Serv as SSB server `sid`
 
   note over Umux: Generates<br/>challenge `cc`
-  Umux->>Uweb: `https://${serverHost}/login<br/>?cid=${cid}&cc=${cc}`
-  Uweb->>+Serv: `https://${serverHost}/login<br/>?cid=${cid}&cc=${cc}`
+  Umux->>Uweb: `https://${serverHost}/login<br/>?ssb-http-auth=1cid=${cid}&cc=${cc}`
+  Uweb->>+Serv: `https://${serverHost}/login<br/>?ssb-http-auth=1cid=${cid}&cc=${cc}`
   Note over Serv: Generates<br/>challenge `sc`
   alt client is disconnected from the server
     Serv-->>Uweb: HTTP 403
@@ -135,11 +135,11 @@ pre, code {
   participant Uweb as Browser client
   participant Serv as SSB server `sid`
 
-  Uweb->>Serv: `https://${serverHost}/login`
+  Uweb->>Serv: Some URL on the `serverHost`
   activate Serv
   Note over Serv: Generates<br/>challenge `sc`
   Serv-->>Uweb: Displays `ssb:experimental?<br/>action=start-http-auth&sid=${sid}&sc=${sc}`
-  Uweb->>Serv: SSE subscribe to `/sse/login/${sc}`
+  Uweb->>Serv: Subscribe to some SSE URL with `sc` as input
   Uweb->>Umux: Consumes SSB URI
   Note over Umux: Generates<br/>challenge `cc`
   Note over Umux: Generates<br/>signature `sol`
@@ -159,7 +159,7 @@ pre, code {
   end
 </div>
 <p>The SSB URI <strong>MAY</strong> also contain the query parameter <code>multiserverAddress</code> with value <code>msaddr</code> matching the server's multiserver address, in case the client does not know how to map the server's <code>sid</code> to a multiserver address in order to call the muxrpc <code>http.sendSolution</code>:</p>
-<pre><code>ssb:experimental?&#x3C;br/>action=start-http-auth&#x26;sid=${sid}&#x26;sc=${sc}&#x26;multiserverAddress=${msaddr}
+<pre><code>ssb:experimental?action=start-http-auth&#x26;sid=${sid}&#x26;sc=${sc}&#x26;multiserverAddress=${msaddr}
 </code></pre>
 <h3 id="sign-out">Sign-out</h3>
 <p>An optional (but recommended) muxrpc API <code>httpAuth.invalidateAllSolutions</code> on the server to allow the SSB peer to invalidate <em>all</em> auth tokens associated with the <code>cid</code>. See UML sequence diagram:</p>
@@ -182,7 +182,7 @@ pre, code {
   participant Uweb as Browser client
   participant Serv as SSB server `sid`
 
-  Uweb->>+Serv: `/logout`
+  Uweb->>+Serv: Some URL on the `serverHost`
   Note over Serv: Invalidates `authtoken`
   Serv-->>-Uweb: HTTP 200
   Note over Uweb,Serv: Potentially thereafter...
@@ -198,11 +198,9 @@ pre, code {
 <h3 id="tokens">Tokens</h3>
 <p>To be done.</p>
 <h2 id="appendix">Appendix</h2>
-<h3 id="list-of-http-endpoints">List of HTTP endpoints</h3>
+<h3 id="list-of-required-http-endpoints">List of required HTTP endpoints</h3>
 <ul>
 <li><code>/login</code></li>
-<li><code>/sse/login/${sc}</code></li>
-<li><code>/logout</code></li>
 </ul>
 <h3 id="list-of-new-muxrpc-apis">List of new muxrpc APIs</h3>
 <ul>

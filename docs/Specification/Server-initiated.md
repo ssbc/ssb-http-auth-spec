@@ -14,11 +14,11 @@ sequenceDiagram
   participant Uweb as Browser client
   participant Serv as SSB server `sid`
 
-  Uweb->>Serv: `https://${serverHost}/login`
+  Uweb->>Serv: Some URL on the `serverHost`
   activate Serv
   Note over Serv: Generates<br/>challenge `sc`
   Serv-->>Uweb: Displays `ssb:experimental?<br/>action=start-http-auth&sid=${sid}&sc=${sc}`
-  Uweb->>Serv: SSE subscribe to `/sse/login/${sc}`
+  Uweb->>Serv: Subscribe to some SSE URL with `sc` as input
   Uweb->>Umux: Consumes SSB URI
   Note over Umux: Generates<br/>challenge `cc`
   Note over Umux: Generates<br/>signature `sol`
@@ -41,5 +41,5 @@ sequenceDiagram
 The SSB URI **MAY** also contain the query parameter `multiserverAddress` with value `msaddr` matching the server's multiserver address, in case the client does not know how to map the server's `sid` to a multiserver address in order to call the muxrpc `http.sendSolution`:
 
 ```
-ssb:experimental?<br/>action=start-http-auth&sid=${sid}&sc=${sc}&multiserverAddress=${msaddr}
+ssb:experimental?action=start-http-auth&sid=${sid}&sc=${sc}&multiserverAddress=${msaddr}
 ```
