@@ -18,5 +18,4 @@ The challenges, `cc` and `sc`, are 256-bit [cryptographic nonces](https://en.wik
 
 Both sides generate the nonces, but there are use cases where one side should start first. In other words, the challenge-response protocol described here can be either **client-initiated** or **server-initiated**.
 
-The HTTPS endpoints `/login`, `/sse/login/${sc}`, `/logout` **MAY** be employed as specified here, but are not strictly required for SSB HTTP Authentication to succeed. On the other hand, the muxrpc APIs `httpAuth.requestSolution(sc, cc)`, `httpAuth.sendSolution(sc, cc, cr)`, `httpAuth.invalidateAllSolutions()` and the SSB URI `ssb:experimental?action=start-http-auth&sid=${sid}&sc=${sc}` **MUST** be employed.
-
+The HTTPS endpoint `/login` with the query parameter `ssb-http-auth` **MUST** be employed as specified here, but URLs for logging out and for Server-Sent Events (SSE) are left unspecified and implementations are free to choose their routes. The muxrpc APIs `httpAuth.requestSolution(sc, cc)`, `httpAuth.sendSolution(sc, cc, cr)`, `httpAuth.invalidateAllSolutions()` and the SSB URI `ssb:experimental?action=start-http-auth&sid=${sid}&sc=${sc}` **MUST** be employed as specified here.

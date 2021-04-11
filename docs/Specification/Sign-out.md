@@ -23,7 +23,7 @@ sequenceDiagram
   participant Uweb as Browser client
   participant Serv as SSB server `sid`
 
-  Uweb->>+Serv: `/logout`
+  Uweb->>+Serv: Some URL on the `serverHost`
   Note over Serv: Invalidates `authtoken`
   Serv-->>-Uweb: HTTP 200
   Note over Uweb,Serv: Potentially thereafter...
