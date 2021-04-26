@@ -42,7 +42,7 @@ pre, code {
 <body>
 
 <h1 id="ssb-http-authentication">SSB HTTP Authentication</h1>
-<p><strong>Revision:</strong> <code>2021-04-09</code></p>
+<p><strong>Revision:</strong> <code>2021-04-26</code></p>
 <p><strong>Author:</strong> Andre Medeiros <a href="mailto:contact@staltz.com">contact@staltz.com</a></p>
 <p><strong>License:</strong> This work is licensed under a <a href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>
 <h2 id="abstract">Abstract</h2>
@@ -76,7 +76,7 @@ pre, code {
 </ul>
 <h2 id="conditions">Conditions</h2>
 <p>This specification makes clear assumptions about the setup involved peers authenticating.</p>
-<p><strong>Server:</strong> an SSB peer, known as the "server", <strong>MUST</strong> have an internet-public host address, <strong>MUST</strong> be accessible for secret-handshake connections under a multiserver address, and <strong>MUST</strong> support HTTP requests.</p>
+<p><strong>Server:</strong> an SSB peer, known as the "server", <strong>MUST</strong> have an internet-public host address, <strong>MUST</strong> be accessible for secret-handshake connections under a multiserver address, and <strong>MUST</strong> support HTTPS requests as well as it <strong>MUST NOT</strong> support plain HTTP.</p>
 <p><strong>Client:</strong> another SSB peer, known as the "client", <strong>MUST</strong> be able to open a secret-handshake and muxrpc connection with the server. The user controlling this SSB peer also <strong>SHOULD</strong> control a web browser used to make requests to the server. The client's browser and operating system <strong>SHOULD</strong> support hyperlinks to <a href="https://github.com/ssb-ngi-pointer/ssb-uri-spec">SSB URIs</a>, redirecting them to SSB applications that recognize and parse SSB URIs. The client's SSB application employed during SSB HTTP Authentication <strong>MUST</strong> be able to recognize and parse SSB URIs.</p>
 <p><strong>Connections:</strong> the server and the client <strong>SHOULD</strong> recognize each other's SSB IDs as mutually trusted (such as a mutual follow relationship, or "membership" relationship where the client has claimed an invite token from the server). For the authentication protocol described in this document to succeed, the two SSB peers <strong>MUST</strong> be connected to each other via muxrpc and secret-handshake for the entire duration of the protocol. The purpose of SSB HTTP Authentication is to extend the trust that exists between these peers from the muxrpc context to the context of HTTP in the browser.</p>
 <h2 id="specification">Specification</h2>
