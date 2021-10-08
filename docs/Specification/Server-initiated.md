@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2021 Andre 'Staltz' Medeiros
+
+SPDX-License-Identifier: CC-BY-4.0
+-->
+
 ## Server-initiated protocol
 
 In the server-initiated variant of the challenge-response protocol, the first step is the browser requesting a login from the server without any input data. The server answers the browser, which in turn displays an SSB URI which the SSB peer knows how to open.

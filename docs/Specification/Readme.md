@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2021 Andre 'Staltz' Medeiros
+
+SPDX-License-Identifier: CC-BY-4.0
+-->
+
 # Specification
 
 A client known by its SSB ID `cid` is connected via secret-handshake and muxrpc to a server known by its SSB ID `sid`. The server is hosted at `serverHost`. A browser controlled by the same person or agent as the `cid` peer wishes to request an access-restricted resource (such as an admin dashboard) at the server over HTTP. All HTTP requests **MUST** be done with HTTPS.
